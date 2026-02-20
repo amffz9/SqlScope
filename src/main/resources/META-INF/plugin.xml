@@ -1,0 +1,87 @@
+<!-- Plugin descriptor — see https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+
+    <!-- Unique, reverse-DNS plugin ID. Never change this after publishing. -->
+    <id>com.sqlscope</id>
+    <name>SQLScope</name>
+    <version>1.0.0</version>
+    <vendor url="https://github.com/example/sqlscope">SQLScope</vendor>
+
+    <description><![CDATA[
+        <p>Quick SQL Dialect &amp; Resolution Scope Manager for the Project View.</p>
+        <p>
+            Right-click any <strong>directory</strong> in the Project View tree →
+            <strong>SQLScope</strong> to instantly assign a SQL dialect or data source
+            resolution scope — no more digging through
+            Settings → Languages &amp; Frameworks → SQL Dialects.
+        </p>
+        <ul>
+            <li><b>Set SQL Dialect</b> — MySQL, PostgreSQL, SQLite, MariaDB, Oracle, T-SQL, Generic SQL</li>
+            <li><b>Set Resolution Scope</b> — picks from all data sources configured in the Database tool window</li>
+            <li>Confirmation balloon after every change</li>
+        </ul>
+    ]]></description>
+
+    <!--
+        Platform dependency:
+          • com.intellij.modules.platform  — Core IntelliJ Platform (always present)
+          • com.intellij.database          — Database Tools & SQL plugin
+            Bundled in: PhpStorm, IntelliJ IDEA Ultimate, DataGrip, CLion, GoLand, etc.
+            NOT bundled in: IntelliJ IDEA Community, Android Studio.
+    -->
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.database</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+
+        <!-- Project-level service: one instance per open project. -->
+        <projectService serviceImplementation="com.sqlscope.services.SqlScopeService"/>
+
+        <!--
+            Notification group for balloon messages shown after dialect/scope changes.
+            Referenced by the NOTIFICATION_GROUP constant in SqlScopeService.
+        -->
+        <notificationGroup id="SQLScope Notifications"
+                           displayType="BALLOON"
+                           isLogByDefault="true"/>
+
+    </extensions>
+
+    <actions>
+
+        <!--
+            Top-level "SQLScope" group.
+            SqlScopeMenuGroup.update() hides the group unless a directory is selected.
+        -->
+        <group id="SQLScope.Menu"
+               class="com.sqlscope.actions.SqlScopeMenuGroup"
+               text="SQLScope"
+               popup="true">
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+        </group>
+
+        <!--
+            "Set SQL Dialect" submenu.
+            SetDialectActionGroup.getChildren() builds the list from DialectRegistry at show-time.
+        -->
+        <group id="SQLScope.SetDialect"
+               class="com.sqlscope.actions.SetDialectActionGroup"
+               text="Set SQL Dialect"
+               popup="true">
+            <add-to-group group-id="SQLScope.Menu" anchor="first"/>
+        </group>
+
+        <!--
+            "Set Resolution Scope" submenu.
+            SetResolutionActionGroup.getChildren() queries DbPsiFacade.dataSources at show-time.
+        -->
+        <group id="SQLScope.SetResolution"
+               class="com.sqlscope.actions.SetResolutionActionGroup"
+               text="Set Resolution Scope"
+               popup="true">
+            <add-to-group group-id="SQLScope.Menu" anchor="last"/>
+        </group>
+
+    </actions>
+
+</idea-plugin>
