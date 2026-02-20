@@ -43,12 +43,6 @@ When no datasources are configured, all dialects appear flat and the Resolution 
 - PhpStorm, IntelliJ IDEA Ultimate, or DataGrip (requires the bundled Database Tools & SQL plugin)
 - IDE build 2025.3 or later
 
-## Installation
-
-1. Download `SQLScope-1.0.0.zip` from the [Releases](../../releases) page
-2. In the IDE: **Settings → Plugins → ⚙ → Install Plugin from Disk…**
-3. Select the zip file and restart the IDE
-
 ## Building from Source
 
 ```bash
