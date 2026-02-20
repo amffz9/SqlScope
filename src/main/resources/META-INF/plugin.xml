@@ -52,34 +52,13 @@
         <!--
             Top-level "SQLScope" group.
             SqlScopeMenuGroup.update() hides the group unless a directory is selected.
+            SqlScopeMenuGroup.getChildren() builds the full flat menu dynamically.
         -->
         <group id="SQLScope.Menu"
                class="com.sqlscope.actions.SqlScopeMenuGroup"
                text="SQLScope"
                popup="true">
             <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
-        </group>
-
-        <!--
-            "Set SQL Dialect" submenu.
-            SetDialectActionGroup.getChildren() builds the list from DialectRegistry at show-time.
-        -->
-        <group id="SQLScope.SetDialect"
-               class="com.sqlscope.actions.SetDialectActionGroup"
-               text="Set SQL Dialect"
-               popup="true">
-            <add-to-group group-id="SQLScope.Menu" anchor="first"/>
-        </group>
-
-        <!--
-            "Set Resolution Scope" submenu.
-            SetResolutionActionGroup.getChildren() queries DbPsiFacade.dataSources at show-time.
-        -->
-        <group id="SQLScope.SetResolution"
-               class="com.sqlscope.actions.SetResolutionActionGroup"
-               text="Set Resolution Scope"
-               popup="true">
-            <add-to-group group-id="SQLScope.Menu" anchor="last"/>
         </group>
 
     </actions>

@@ -13,13 +13,13 @@ class ClearResolutionAction : AnAction("Clear Resolution Scope") {
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val directory = SetDialectActionGroup.getSelectedDirectory(e) ?: return
+        val directory = SqlScopeMenuGroup.getSelectedDirectory(e) ?: return
         SqlScopeService.getInstance(project).clearResolutionScope(directory)
     }
 
     override fun update(e: AnActionEvent) {
         e.presentation.isEnabledAndVisible =
-            e.project != null && SetDialectActionGroup.getSelectedDirectory(e) != null
+            e.project != null && SqlScopeMenuGroup.getSelectedDirectory(e) != null
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

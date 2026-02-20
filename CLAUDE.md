@@ -25,17 +25,15 @@ directories, replacing the tedious Settings → Languages & Frameworks → SQL D
 ```
 src/main/kotlin/com/sqlscope/
 ├── actions/
-│   ├── SqlScopeMenuGroup.kt         Top-level "SQLScope" group (visibility guard)
-│   ├── SetDialectActionGroup.kt     Dynamic "Set SQL Dialect" submenu
-│   ├── SetDialectAction.kt          Applies one dialect via SqlDialectMappings
-│   ├── ClearDialectAction.kt        Clears dialect (setMapping null)
-│   ├── SetResolutionActionGroup.kt  Dynamic "Set Resolution Scope" submenu
-│   ├── SetResolutionAction.kt       Associates directory with a DbDataSource
-│   └── ClearResolutionAction.kt     Clears resolution scope
+│   ├── SqlScopeMenuGroup.kt   Top-level group + dynamic flat menu builder
+│   ├── SetDialectAction.kt    Applies one dialect via SqlDialectMappings
+│   ├── ClearDialectAction.kt  Clears dialect (setMapping null)
+│   ├── SetResolutionAction.kt Associates directory with a DbDataSource or schema
+│   └── ClearResolutionAction.kt  Clears resolution scope
 ├── services/
-│   └── SqlScopeService.kt           Core service; owns all mapping + notification logic
+│   └── SqlScopeService.kt     Core service; owns all mapping + notification logic
 └── util/
-    └── DialectRegistry.kt           Static list of SQL dialect display names ↔ Language IDs
+    └── DialectRegistry.kt     Discovers SQL dialects from the Language registry
 
 src/main/resources/META-INF/plugin.xml   Plugin descriptor (actions, service, notifications)
 src/test/kotlin/com/sqlscope/
@@ -47,22 +45,26 @@ src/test/kotlin/com/sqlscope/
 ```
 ProjectViewPopupMenu
 └── SQLScope  (SqlScopeMenuGroup — hidden unless a directory is selected)
-    ├── Set SQL Dialect  (SetDialectActionGroup — dynamic children from DialectRegistry)
-    │   ├── MySQL
-    │   ├── PostgreSQL
-    │   ├── SQLite
-    │   ├── MariaDB
-    │   ├── Oracle (SQL*Plus)
-    │   ├── SQL Server (T-SQL)
+    ├── ── Dialect ──────────────  Separator("Dialect")
+    ├── MySQL                      dialect matching a configured datasource's DBMS
+    ├── PostgreSQL                 dialect matching a configured datasource's DBMS
+    ├── More Dialects ▶            DefaultActionGroup(popup=true) with remaining dialects
     │   ├── Generic SQL
-    │   ├── ─────────────────
-    │   └── Clear Dialect
-    └── Set Resolution Scope  (SetResolutionActionGroup — dynamic from DbPsiFacade)
-        ├── <data source 1>
-        ├── <data source 2>
-        ├── ─────────────────
-        └── Clear Resolution Scope
+    │   ├── MariaDB
+    │   ├── Oracle SQL*Plus
+    │   ├── SQLite
+    │   └── SQL Server (T-SQL)
+    ├── Clear Dialect
+    ├── ── Resolution Scope ─────  Separator("Resolution Scope") — only if datasources exist
+    ├── information_schema         schema scope (flat)
+    ├── my_app_db                  schema scope (flat)
+    ├── MySQL @ localhost          whole-server scope (flat)
+    ├── PostgreSQL @ prod          whole-server scope (flat)
+    └── Clear Resolution Scope
 ```
+
+When no datasources are configured: all dialects appear flat (no "More Dialects" submenu)
+and the Resolution Scope separator + items are omitted.
 
 ---
 
@@ -72,6 +74,8 @@ ProjectViewPopupMenu
 |---|---|---|
 | SQL Dialect | `SqlDialectMappings.getInstance(project).setMapping(file, language)` | `.idea/sqlDialects.xml` |
 | Data source list | `DbPsiFacade.getInstance(project).dataSources` | — (read-only here) |
+| DBMS of a datasource | `DasDataSource.getDbms(): Dbms` (`com.intellij.database.Dbms`) | — |
+| DBMS display name | `Dbms.displayName` — e.g. "MySQL", "Microsoft SQL Server" | — |
 | Resolution scope | **NOT YET IMPLEMENTED** — see below | `.idea/sqlResolutionScopes.xml` (likely) |
 
 ### Threading Rules
@@ -134,8 +138,8 @@ Common IDs (verify against your IDE version):
 ## Notes for Claude
 - **Do not add `@Suppress("UnstableApiUsage")`** unless specifically needed; prefer
   using stable API overloads first.
-- `DefaultActionGroup` children registered via `plugin.xml <add-to-group>` are returned
-  by the inherited `getChildren()` — no override needed in `SqlScopeMenuGroup`.
+- `SqlScopeMenuGroup` now extends `ActionGroup` (not `DefaultActionGroup`) and owns all
+  menu building in `getChildren()` — do not re-add child groups via plugin.xml.
 - When updating actions, always implement `getActionUpdateThread()` returning `BGT`
   unless the update() body requires EDT-bound model access.
 - The `bundledPlugin("com.intellij.database")` dependency resolves
