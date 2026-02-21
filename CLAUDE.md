@@ -76,7 +76,7 @@ and the Resolution Scope separator + items are omitted.
 | Data source list | `DbPsiFacade.getInstance(project).dataSources` | — (read-only here) |
 | DBMS of a datasource | `DasDataSource.getDbms(): Dbms` (`com.intellij.database.Dbms`) | — |
 | DBMS display name | `Dbms.displayName` — e.g. "MySQL", "Microsoft SQL Server" | — |
-| Resolution scope | **NOT YET IMPLEMENTED** — see below | `.idea/sqlResolutionScopes.xml` (likely) |
+| Resolution scope | `SqlResolveMappings.getInstance(project).setMapping(file, pattern)` where `pattern = TreePatternUtils.create(scope) as TreePattern` | `.idea/sqldialects.xml` |
 
 ### Threading Rules
 - All `update()` methods use `ActionUpdateThread.BGT` (background thread) — safe because
@@ -87,39 +87,21 @@ and the Resolution Scope separator + items are omitted.
 
 ## Known Limitations / TODOs
 
-### 1. Resolution Scope API (priority TODO)
-`SqlScopeService.setResolutionScopeImpl()` currently throws `NotImplementedError`.
-The SQL resolution scope API is not fully exposed as a stable public surface in all
-IntelliJ Platform versions.
+### 1. Resolution Scope API — IMPLEMENTED
+`SqlScopeService.setResolutionScope()` and `clearResolutionScope()` are fully implemented
+using `SqlResolveMappings.getInstance(project).setMapping(directory, pattern)` where
+`pattern` is built with `TreePatternUtils.create(scope) as TreePattern`.
 
-**How to find the correct API:**
-1. Run `./gradlew runIde` and open any project.
-2. Go to Settings → Languages & Frameworks → SQL Resolution Scopes and add a mapping.
-3. Find the backing `Configurable` class in the IDE source:
-   - Search for `SqlResolutionScopeConfigurable` or `SqlFileScopeManager`.
-4. Candidate classes to try (check availability for your IDE build):
-   - `com.intellij.sql.psi.SqlFileScopes.getInstance(project)`
-   - `com.intellij.sql.dialects.SqlResolveScope`
-   - `com.intellij.database.model.DasScopeMapping`
-5. Implement the call in `setResolutionScopeImpl()` and `clearResolutionScopeImpl()`.
+- `scope` can be a `DbDataSource` (whole server) or a `DasNamespace` (individual schema/database).
+- Persists in `.idea/sqldialects.xml`, mirroring Settings → Languages & Frameworks → SQL Resolution Scopes.
 
-### 2. Dialect Language IDs
-If a dialect shows "not available" at runtime, the Language ID registered by the IDE
-may differ from the constant in `DialectRegistry`. Call `DialectRegistry.logRegisteredLanguages()`
-from `actionPerformed` and check the IDE notification / log output.
-
-Common IDs (verify against your IDE version):
-- MySQL → `"MySQL"`
-- PostgreSQL → `"PostgreSQL"`
-- SQLite → `"SQLite"`
-- MariaDB → `"MariaDB"`
-- Oracle → `"OracleSqlPlus"`
-- T-SQL → `"TSQL"`
-- Generic SQL → `"GenericSQL"`
+### 2. Dialect Language IDs — RESOLVED
+`DialectRegistry` now uses dynamic discovery via `SqlLanguageDialect.getRegisteredLanguages()`,
+so hardcoded IDs are no longer needed. The registry always returns the correct dialect
+objects for the running IDE version. To debug missing dialects, call
+`DialectRegistry.logAvailableDialects()` and log or notify the result.
 
 ### 3. Stretch Goals (v1.1)
-- Persist mappings in `.sqlscope.json` at the project root so they can be committed.
-- On project open, read `.sqlscope.json` and call `SqlDialectMappings.setMapping()`.
 - Add a tree decorator to badge directories that have a dialect assigned.
 
 ---
