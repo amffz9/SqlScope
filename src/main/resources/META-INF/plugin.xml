@@ -2,10 +2,10 @@
 <idea-plugin>
 
     <!-- Unique, reverse-DNS plugin ID. Never change this after publishing. -->
-    <id>com.sqlscope</id>
+    <id>io.github.amffz9.sqlscope</id>
     <name>SQLScope</name>
     <version>1.0.0</version>
-    <vendor url="https://github.com/example/sqlscope">SQLScope</vendor>
+    <vendor url="https://github.com/amffz9/SqlScope">amffz9</vendor>
 
     <description><![CDATA[
         <p>Quick SQL Dialect &amp; Resolution Scope Manager for the Project View.</p>
