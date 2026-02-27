@@ -1,9 +1,13 @@
 package com.sqlscope.actions
 
 import com.intellij.database.model.DasObject
+import com.intellij.database.util.TreePattern
+import com.intellij.database.util.TreePatternUtils
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.sql.dialects.SqlResolveMappings
 import com.sqlscope.services.SqlScopeService
 
 /**
@@ -20,12 +24,29 @@ class SetResolutionAction(
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val directory = SqlScopeMenuGroup.getSelectedDirectory(e) ?: return
-        SqlScopeService.getInstance(project).setResolutionScope(directory, scope, displayName)
+        val service = SqlScopeService.getInstance(project)
+        val current = SqlResolveMappings.getInstance(project).getMapping(directory)
+        val thisPattern = TreePattern(TreePatternUtils.create(scope))
+        if (current != null && current.toString() == thisPattern.toString()) {
+            service.clearResolutionScope(directory)
+        } else {
+            service.setResolutionScope(directory, scope, displayName)
+        }
     }
 
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible =
-            e.project != null && SqlScopeMenuGroup.getSelectedDirectory(e) != null
+        val project = e.project
+        val directory = project?.let { SqlScopeMenuGroup.getSelectedDirectory(e) }
+        e.presentation.isEnabledAndVisible = project != null && directory != null
+        if (project != null && directory != null) {
+            val current = SqlResolveMappings.getInstance(project).getMapping(directory)
+            if (current != null && current.isNotEmpty()) {
+                val thisPattern = TreePattern(TreePatternUtils.create(scope))
+                e.presentation.icon = if (current.toString() == thisPattern.toString()) AllIcons.Actions.Checked else null
+            } else {
+                e.presentation.icon = null
+            }
+        }
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT

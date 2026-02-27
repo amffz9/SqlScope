@@ -1,8 +1,10 @@
 package com.sqlscope.actions
 
+import com.intellij.icons.AllIcons
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
 import com.intellij.openapi.actionSystem.AnActionEvent
+import com.intellij.sql.dialects.SqlDialectMappings
 import com.intellij.sql.dialects.SqlLanguageDialect
 import com.sqlscope.services.SqlScopeService
 
@@ -19,12 +21,23 @@ class SetDialectAction(private val dialect: SqlLanguageDialect) : AnAction(diale
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
         val directory = SqlScopeMenuGroup.getSelectedDirectory(e) ?: return
-        SqlScopeService.getInstance(project).setDialect(directory, dialect)
+        val service = SqlScopeService.getInstance(project)
+        val current = SqlDialectMappings.getInstance(project).getMapping(directory)
+        if (current == dialect) {
+            service.clearDialect(directory)
+        } else {
+            service.setDialect(directory, dialect)
+        }
     }
 
     override fun update(e: AnActionEvent) {
-        e.presentation.isEnabledAndVisible =
-            e.project != null && SqlScopeMenuGroup.getSelectedDirectory(e) != null
+        val project = e.project
+        val directory = project?.let { SqlScopeMenuGroup.getSelectedDirectory(e) }
+        e.presentation.isEnabledAndVisible = project != null && directory != null
+        if (project != null && directory != null) {
+            val current = SqlDialectMappings.getInstance(project).getMapping(directory)
+            e.presentation.icon = if (current == dialect) AllIcons.Actions.Checked else null
+        }
     }
 
     override fun getActionUpdateThread(): ActionUpdateThread = ActionUpdateThread.BGT
