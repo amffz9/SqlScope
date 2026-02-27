@@ -4,7 +4,7 @@ plugins {
 }
 
 group = "com.sqlscope"
-version = "1.0.0"
+version = "1.1.0"
 
 // Target JVM 21 for both Kotlin and Java so they stay consistent.
 // The installed JDK (25) will compile to this target without needing a toolchain download.
