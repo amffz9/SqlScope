@@ -12,7 +12,7 @@ src/main/kotlin/com/sqlscope/
 │   ├── SqlScopeMenuGroup.kt   Top-level group + dynamic flat menu builder
 │   ├── SetDialectAction.kt    Applies one dialect via SqlDialectMappings
 │   ├── ClearDialectAction.kt  Clears dialect (setMapping null)
-│   ├── SetResolutionAction.kt Associates directory with a DbDataSource or schema
+│   ├── SetResolutionAction.kt Associates file/dir with a DbDataSource or schema
 │   └── ClearResolutionAction.kt  Clears resolution scope
 ├── services/
 │   └── SqlScopeService.kt     Core service; owns all mapping + notification logic
@@ -28,7 +28,7 @@ src/test/kotlin/com/sqlscope/
 
 ```
 ProjectViewPopupMenu
-└── SQLScope  (SqlScopeMenuGroup — hidden unless a directory is selected)
+└── SQLScope  (SqlScopeMenuGroup — hidden unless a file or directory is selected)
     ├── ── Dialect ──────────────  Separator("Dialect")
     ├── MySQL                      dialect matching a configured datasource's DBMS
     ├── PostgreSQL                 dialect matching a configured datasource's DBMS

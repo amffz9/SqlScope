@@ -42,7 +42,7 @@ class SqlScopeMenuGroup : ActionGroup() {
 
     override fun getChildren(e: AnActionEvent?): Array<AnAction> {
         val project = e?.project ?: return AnAction.EMPTY_ARRAY
-        getSelectedDirectory(e) ?: return AnAction.EMPTY_ARRAY
+        if (getSelectedFiles(e).isEmpty()) return AnAction.EMPTY_ARRAY
 
         val dataSources = try {
             DbPsiFacade.getInstance(project).dataSources.toList()
@@ -81,24 +81,49 @@ class SqlScopeMenuGroup : ActionGroup() {
                 val scope = DbImplUtilCore.getIntrospectionScope(ds)
                     ?: return@forEach  // no introspection configured → skip
 
-                val schemas = DasUtil.getSchemas(ds)
-                    .filter { it.kind == ObjectKind.SCHEMA }
+                val dsGroup = DefaultActionGroup(ds.name, true)
+
+                val databases = ds.getDasChildren(ObjectKind.DATABASE)
                     .filter { DataSourceSchemaMapping.isIntrospected(scope, it) }
                     .toList()
 
-                if (schemas.isEmpty()) return@forEach
+                if (databases.isNotEmpty()) {
+                    // Multi-level: DataSource → Database → Schema
+                    databases.forEach { db ->
+                        val dbSchemas = db.getDasChildren(ObjectKind.SCHEMA)
+                            .filter { DataSourceSchemaMapping.isIntrospected(scope, it) }
+                            .toList()
+                        if (dbSchemas.isEmpty()) return@forEach
 
-                val dsGroup = DefaultActionGroup(ds.name, true)
-                schemas.forEach { schema ->
-                    val parent = schema.dasParent
-                    val displayName = if (parent != null &&
-                        parent.kind == ObjectKind.DATABASE) {
-                        "${parent.name}.${schema.name}"
-                    } else {
-                        schema.name
+                        if (dbSchemas.size > 3) {
+                            // Nest under database submenu
+                            val dbGroup = DefaultActionGroup(db.name, true)
+                            dbSchemas.forEach { schema ->
+                                dbGroup.add(SetResolutionAction(schema.name, schema))
+                            }
+                            dbGroup.add(Separator.getInstance())
+                            dbGroup.add(SetResolutionAction("All (${db.name})", db))
+                            dsGroup.add(dbGroup)
+                        } else {
+                            // Flat with qualified names
+                            dbSchemas.forEach { schema ->
+                                dsGroup.add(SetResolutionAction("${db.name}.${schema.name}", schema))
+                            }
+                        }
                     }
-                    dsGroup.add(SetResolutionAction(displayName, schema))
+                } else {
+                    // Flat datasource (MySQL-style): schemas directly under root
+                    val schemas = DasUtil.getSchemas(ds)
+                        .filter { it.kind == ObjectKind.SCHEMA }
+                        .filter { DataSourceSchemaMapping.isIntrospected(scope, it) }
+                        .toList()
+                    schemas.forEach { schema ->
+                        dsGroup.add(SetResolutionAction(schema.name, schema))
+                    }
                 }
+
+                if (dsGroup.childrenCount == 0) return@forEach
+
                 dsGroup.add(Separator.getInstance())
                 dsGroup.add(SetResolutionAction("All (${ds.name})", ds))
                 actions.add(dsGroup)
@@ -113,7 +138,7 @@ class SqlScopeMenuGroup : ActionGroup() {
     override fun update(e: AnActionEvent) {
         super.update(e)
         val files = e.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)
-        e.presentation.isEnabledAndVisible = files?.any { it.isDirectory } == true
+        e.presentation.isEnabledAndVisible = files?.isNotEmpty() == true
     }
 
     // BGT: update() only reads getData() — no model/UI access required.
@@ -136,12 +161,9 @@ class SqlScopeMenuGroup : ActionGroup() {
 
     companion object {
         /**
-         * Returns the single selected directory from the Project View, or null when:
-         *  - nothing is selected
-         *  - a file (not a directory) is selected
-         *  - multiple items are selected
+         * Returns all selected files/directories from the Project View.
          */
-        fun getSelectedDirectory(e: AnActionEvent?): VirtualFile? =
-            e?.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.singleOrNull { it.isDirectory }
+        fun getSelectedFiles(e: AnActionEvent?): List<VirtualFile> =
+            e?.getData(CommonDataKeys.VIRTUAL_FILE_ARRAY)?.toList() ?: emptyList()
     }
 }

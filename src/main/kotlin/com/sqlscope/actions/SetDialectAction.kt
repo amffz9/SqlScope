@@ -9,9 +9,9 @@ import com.intellij.sql.dialects.SqlLanguageDialect
 import com.sqlscope.services.SqlScopeService
 
 /**
- * Applies a specific SQL dialect to the selected directory by calling
- * SqlDialectMappings.setMapping(). The mapping is recursive — all SQL files
- * under the directory inherit this dialect.
+ * Applies a specific SQL dialect to the selected file(s) or directory(ies) by
+ * calling SqlDialectMappings.setMapping(). Directory mappings are recursive —
+ * all SQL files under the directory inherit this dialect.
  *
  * The [dialect] is a live Language object from the registry, not a string ID,
  * so there's no lookup step and no risk of the ID being wrong.
@@ -20,22 +20,23 @@ class SetDialectAction(private val dialect: SqlLanguageDialect) : AnAction(diale
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val directory = SqlScopeMenuGroup.getSelectedDirectory(e) ?: return
+        val files = SqlScopeMenuGroup.getSelectedFiles(e)
+        if (files.isEmpty()) return
         val service = SqlScopeService.getInstance(project)
-        val current = SqlDialectMappings.getInstance(project).getMapping(directory)
+        val current = SqlDialectMappings.getInstance(project).getMapping(files.first())
         if (current == dialect) {
-            service.clearDialect(directory)
+            files.forEach { service.clearDialect(it) }
         } else {
-            service.setDialect(directory, dialect)
+            files.forEach { service.setDialect(it, dialect) }
         }
     }
 
     override fun update(e: AnActionEvent) {
         val project = e.project
-        val directory = project?.let { SqlScopeMenuGroup.getSelectedDirectory(e) }
-        e.presentation.isEnabledAndVisible = project != null && directory != null
-        if (project != null && directory != null) {
-            val current = SqlDialectMappings.getInstance(project).getMapping(directory)
+        val files = SqlScopeMenuGroup.getSelectedFiles(e)
+        e.presentation.isEnabledAndVisible = project != null && files.isNotEmpty()
+        if (project != null && files.isNotEmpty()) {
+            val current = SqlDialectMappings.getInstance(project).getMapping(files.first())
             e.presentation.icon = if (current == dialect) AllIcons.Actions.Checked else null
         }
     }

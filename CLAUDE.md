@@ -3,12 +3,12 @@
 ## What This Project Is
 An IntelliJ/PhpStorm plugin (Kotlin) that adds a right-click context menu in the
 Project View to quickly assign SQL dialects and data source resolution scopes to
-directories, replacing the tedious Settings → Languages & Frameworks → SQL Dialects flow.
+files and directories, replacing the tedious Settings → Languages & Frameworks → SQL Dialects flow.
 
 ## Build & Run
 
 ```bash
-./gradlew buildPlugin      # produces build/distributions/SQLScope-1.0.0.zip
+./gradlew buildPlugin      # produces build/distributions/SQLScope-<version>.zip
 ./gradlew runIde           # launches a sandboxed PhpStorm/IntelliJ for live testing
 ./gradlew verifyPlugin     # API compatibility check (catches binary-incompatible calls)
 ./gradlew test             # JUnit 5 unit tests (no IDE runtime needed)

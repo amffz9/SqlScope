@@ -11,7 +11,7 @@ import com.intellij.sql.dialects.SqlResolveMappings
 import com.sqlscope.services.SqlScopeService
 
 /**
- * Associates the selected directory with a specific resolution scope.
+ * Associates the selected file(s) or directory(ies) with a specific resolution scope.
  *
  * [scope] can be a DbDataSource (whole server) or a DasNamespace (individual
  * schema / database on that server). The [displayName] is shown in the menu.
@@ -23,23 +23,24 @@ class SetResolutionAction(
 
     override fun actionPerformed(e: AnActionEvent) {
         val project = e.project ?: return
-        val directory = SqlScopeMenuGroup.getSelectedDirectory(e) ?: return
+        val files = SqlScopeMenuGroup.getSelectedFiles(e)
+        if (files.isEmpty()) return
         val service = SqlScopeService.getInstance(project)
-        val current = SqlResolveMappings.getInstance(project).getMapping(directory)
+        val current = SqlResolveMappings.getInstance(project).getMapping(files.first())
         val thisPattern = TreePattern(TreePatternUtils.create(scope))
         if (current != null && current.toString() == thisPattern.toString()) {
-            service.clearResolutionScope(directory)
+            files.forEach { service.clearResolutionScope(it) }
         } else {
-            service.setResolutionScope(directory, scope, displayName)
+            files.forEach { service.setResolutionScope(it, scope, displayName) }
         }
     }
 
     override fun update(e: AnActionEvent) {
         val project = e.project
-        val directory = project?.let { SqlScopeMenuGroup.getSelectedDirectory(e) }
-        e.presentation.isEnabledAndVisible = project != null && directory != null
-        if (project != null && directory != null) {
-            val current = SqlResolveMappings.getInstance(project).getMapping(directory)
+        val files = SqlScopeMenuGroup.getSelectedFiles(e)
+        e.presentation.isEnabledAndVisible = project != null && files.isNotEmpty()
+        if (project != null && files.isNotEmpty()) {
+            val current = SqlResolveMappings.getInstance(project).getMapping(files.first())
             if (current != null && current.isNotEmpty()) {
                 val thisPattern = TreePattern(TreePatternUtils.create(scope))
                 e.presentation.icon = if (current.toString() == thisPattern.toString()) AllIcons.Actions.Checked else null

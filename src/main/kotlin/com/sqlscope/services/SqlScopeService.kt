@@ -29,22 +29,22 @@ class SqlScopeService(private val project: Project) {
     // -------------------------------------------------------------------------
 
     /**
-     * Sets the SQL dialect for [directory] and all SQL files beneath it.
+     * Sets the SQL dialect for [file] (file or directory) and all SQL files beneath it.
      *
      * Persists in .idea/sqldialects.xml (committed to VCS by default).
      * The mapping is recursive: child files inherit from the nearest ancestor.
      */
-    fun setDialect(directory: VirtualFile, language: SqlLanguageDialect) {
-        SqlDialectMappings.getInstance(project).setMapping(directory, language)
-        notify("Set SQL dialect to <b>${language.displayName}</b> for <code>${directory.presentableName}</code>")
+    fun setDialect(file: VirtualFile, language: SqlLanguageDialect) {
+        SqlDialectMappings.getInstance(project).setMapping(file, language)
+        notify("Set SQL dialect to <b>${language.displayName}</b> for <code>${file.presentableName}</code>")
     }
 
     /**
-     * Clears the dialect mapping for [directory], reverting to the parent's dialect.
+     * Clears the dialect mapping for [file], reverting to the parent's dialect.
      */
-    fun clearDialect(directory: VirtualFile) {
-        SqlDialectMappings.getInstance(project).setMapping(directory, null)
-        notify("Cleared SQL dialect for <code>${directory.presentableName}</code>")
+    fun clearDialect(file: VirtualFile) {
+        SqlDialectMappings.getInstance(project).setMapping(file, null)
+        notify("Cleared SQL dialect for <code>${file.presentableName}</code>")
     }
 
     // -------------------------------------------------------------------------
@@ -52,7 +52,7 @@ class SqlScopeService(private val project: Project) {
     // -------------------------------------------------------------------------
 
     /**
-     * Associates [directory] with [scope] for SQL symbol resolution.
+     * Associates [file] (file or directory) with [scope] for SQL symbol resolution.
      *
      * [scope] can be any DasObject — a whole DbDataSource (server) or a
      * DasNamespace (schema / database on that server). TreePatternUtils.create()
@@ -61,18 +61,18 @@ class SqlScopeService(private val project: Project) {
      * Persists in .idea/sqldialects.xml via SqlResolveMappings, mirroring
      * Settings → Languages & Frameworks → SQL Resolution Scopes.
      */
-    fun setResolutionScope(directory: VirtualFile, scope: DasObject, displayName: String) {
+    fun setResolutionScope(file: VirtualFile, scope: DasObject, displayName: String) {
         val pattern = TreePattern(TreePatternUtils.create(scope))
-        SqlResolveMappings.getInstance(project).setMapping(directory, pattern)
-        notify("Set resolution scope to <b>$displayName</b> for <code>${directory.presentableName}</code>")
+        SqlResolveMappings.getInstance(project).setMapping(file, pattern)
+        notify("Set resolution scope to <b>$displayName</b> for <code>${file.presentableName}</code>")
     }
 
     /**
-     * Clears the resolution scope mapping for [directory].
+     * Clears the resolution scope mapping for [file].
      */
-    fun clearResolutionScope(directory: VirtualFile) {
-        SqlResolveMappings.getInstance(project).setMapping(directory, null)
-        notify("Cleared resolution scope for <code>${directory.presentableName}</code>")
+    fun clearResolutionScope(file: VirtualFile) {
+        SqlResolveMappings.getInstance(project).setMapping(file, null)
+        notify("Cleared resolution scope for <code>${file.presentableName}</code>")
     }
 
     // -------------------------------------------------------------------------
