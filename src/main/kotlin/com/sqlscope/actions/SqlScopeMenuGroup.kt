@@ -3,6 +3,7 @@ package com.sqlscope.actions
 import com.intellij.database.Dbms
 import com.intellij.database.psi.DbPsiFacade
 import com.intellij.database.dataSource.DataSourceSchemaMapping
+import com.intellij.database.model.ObjectKind
 import com.intellij.database.util.DasUtil
 import com.intellij.database.util.DbImplUtilCore
 import com.intellij.openapi.actionSystem.ActionGroup
@@ -81,6 +82,7 @@ class SqlScopeMenuGroup : ActionGroup() {
                     ?: return@forEach  // no introspection configured → skip
 
                 val schemas = DasUtil.getSchemas(ds)
+                    .filter { it.kind == ObjectKind.SCHEMA }
                     .filter { DataSourceSchemaMapping.isIntrospected(scope, it) }
                     .toList()
 
@@ -88,7 +90,14 @@ class SqlScopeMenuGroup : ActionGroup() {
 
                 val dsGroup = DefaultActionGroup(ds.name, true)
                 schemas.forEach { schema ->
-                    dsGroup.add(SetResolutionAction(schema.name, schema))
+                    val parent = schema.dasParent
+                    val displayName = if (parent != null &&
+                        parent.kind == ObjectKind.DATABASE) {
+                        "${parent.name}.${schema.name}"
+                    } else {
+                        schema.name
+                    }
+                    dsGroup.add(SetResolutionAction(displayName, schema))
                 }
                 dsGroup.add(Separator.getInstance())
                 dsGroup.add(SetResolutionAction("All (${ds.name})", ds))
