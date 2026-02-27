@@ -2,7 +2,9 @@ package com.sqlscope.actions
 
 import com.intellij.database.Dbms
 import com.intellij.database.psi.DbPsiFacade
+import com.intellij.database.dataSource.DataSourceSchemaMapping
 import com.intellij.database.util.DasUtil
+import com.intellij.database.util.DbImplUtilCore
 import com.intellij.openapi.actionSystem.ActionGroup
 import com.intellij.openapi.actionSystem.ActionUpdateThread
 import com.intellij.openapi.actionSystem.AnAction
@@ -25,9 +27,10 @@ import com.sqlscope.util.DialectRegistry
  *   More Dialects ▶        ← remaining dialects (omitted when no datasources)
  *   Clear Dialect
  *   ── Resolution Scope ─────────────────────  ← only when datasources exist
- *   information_schema     ← schema (flat)
- *   my_app_db              ← schema (flat)
- *   MySQL @ localhost      ← whole-server scope
+ *   MySQL @ localhost  ▶   ← datasource submenu (only introspected schemas)
+ *     ├ my_app_db
+ *     ├ ─────────
+ *     └ All (MySQL @ localhost)
  *   Clear Resolution Scope
  *
  * When no datasources are configured all dialects appear flat under the Dialect
@@ -73,16 +76,23 @@ class SqlScopeMenuGroup : ActionGroup() {
         if (dataSources.isNotEmpty()) {
             actions.add(Separator("Resolution Scope"))
 
-            // Flat schemas from all datasources.
             dataSources.forEach { ds ->
-                DasUtil.getSchemas(ds).forEach { schema ->
-                    actions.add(SetResolutionAction(schema.name, schema))
-                }
-            }
+                val scope = DbImplUtilCore.getIntrospectionScope(ds)
+                    ?: return@forEach  // no introspection configured → skip
 
-            // Whole-server entries, one per datasource.
-            dataSources.forEach { ds ->
-                actions.add(SetResolutionAction(ds.name, ds))
+                val schemas = DasUtil.getSchemas(ds)
+                    .filter { DataSourceSchemaMapping.isIntrospected(scope, it) }
+                    .toList()
+
+                if (schemas.isEmpty()) return@forEach
+
+                val dsGroup = DefaultActionGroup(ds.name, true)
+                schemas.forEach { schema ->
+                    dsGroup.add(SetResolutionAction(schema.name, schema))
+                }
+                dsGroup.add(Separator.getInstance())
+                dsGroup.add(SetResolutionAction("All (${ds.name})", ds))
+                actions.add(dsGroup)
             }
         }
 

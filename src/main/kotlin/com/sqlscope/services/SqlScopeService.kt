@@ -62,7 +62,7 @@ class SqlScopeService(private val project: Project) {
      * Settings → Languages & Frameworks → SQL Resolution Scopes.
      */
     fun setResolutionScope(directory: VirtualFile, scope: DasObject, displayName: String) {
-        val pattern = TreePatternUtils.create(scope) as TreePattern
+        val pattern = TreePattern(TreePatternUtils.create(scope))
         SqlResolveMappings.getInstance(project).setMapping(directory, pattern)
         notify("Set resolution scope to <b>$displayName</b> for <code>${directory.presentableName}</code>")
     }
