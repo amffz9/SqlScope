@@ -14,6 +14,7 @@ import com.intellij.openapi.actionSystem.CommonDataKeys
 import com.intellij.openapi.actionSystem.DefaultActionGroup
 import com.intellij.openapi.actionSystem.Separator
 import com.intellij.openapi.vfs.VirtualFile
+import com.intellij.sql.dialects.SqlDialectMappings
 import com.intellij.sql.dialects.SqlLanguageDialect
 import com.sqlscope.util.DialectRegistry
 
@@ -77,7 +78,19 @@ class SqlScopeMenuGroup : ActionGroup() {
         if (dataSources.isNotEmpty()) {
             actions.add(Separator("Resolution Scope"))
 
-            dataSources.forEach { ds ->
+            val files = getSelectedFiles(e)
+            val activeDialect = if (files.isNotEmpty()) {
+                SqlDialectMappings.getInstance(project).getMapping(files.first())
+            } else null
+
+            val filteredDataSources = if (activeDialect != null) {
+                val matching = dataSources.filter { matchesDialect(it.dbms, activeDialect) }
+                matching.ifEmpty { dataSources }  // fallback to all if no match
+            } else {
+                dataSources
+            }
+
+            filteredDataSources.forEach { ds ->
                 val scope = DbImplUtilCore.getIntrospectionScope(ds)
                     ?: return@forEach  // no introspection configured → skip
 
@@ -99,15 +112,15 @@ class SqlScopeMenuGroup : ActionGroup() {
                             // Nest under database submenu
                             val dbGroup = DefaultActionGroup(db.name, true)
                             dbSchemas.forEach { schema ->
-                                dbGroup.add(SetResolutionAction(schema.name, schema))
+                                dbGroup.add(SetResolutionAction(schema.name, schema, ds))
                             }
                             dbGroup.add(Separator.getInstance())
-                            dbGroup.add(SetResolutionAction("All (${db.name})", db))
+                            dbGroup.add(SetResolutionAction("All (${db.name})", db, ds))
                             dsGroup.add(dbGroup)
                         } else {
                             // Flat with qualified names
                             dbSchemas.forEach { schema ->
-                                dsGroup.add(SetResolutionAction("${db.name}.${schema.name}", schema))
+                                dsGroup.add(SetResolutionAction("${db.name}.${schema.name}", schema, ds))
                             }
                         }
                     }
@@ -118,14 +131,14 @@ class SqlScopeMenuGroup : ActionGroup() {
                         .filter { DataSourceSchemaMapping.isIntrospected(scope, it) }
                         .toList()
                     schemas.forEach { schema ->
-                        dsGroup.add(SetResolutionAction(schema.name, schema))
+                        dsGroup.add(SetResolutionAction(schema.name, schema, ds))
                     }
                 }
 
                 if (dsGroup.childrenCount == 0) return@forEach
 
                 dsGroup.add(Separator.getInstance())
-                dsGroup.add(SetResolutionAction("All (${ds.name})", ds))
+                dsGroup.add(SetResolutionAction("All (${ds.name})", ds, ds))
                 actions.add(dsGroup)
             }
         }
